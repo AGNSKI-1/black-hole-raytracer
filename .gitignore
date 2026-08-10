@@ -1,0 +1,17 @@
+# Build outputs
+raytracer_cpu
+raytracer_gpu
+*.o
+*.obj
+*.exe
+*.ilk
+*.pdb
+
+# Rendered output
+output.png
+frames/
+*.mp4
+
+# Editor / OS
+.vscode/
+.DS_Store
