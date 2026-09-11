@@ -1,4 +1,5 @@
 # Build outputs
+build/
 raytracer_cpu
 raytracer_gpu
 *.o
