@@ -1,121 +1,73 @@
-# black-hole-raytracer
+# Relativistic Ray Tracer
 
-A GPU-accelerated relativistic raytracer that renders a Schwarzschild black
-hole with a volumetric accretion disk by numerically integrating null
-geodesics. Each pixel is one independent photon path traced backward from
-the camera through curved spacetime — embarrassingly parallel, and a good
-fit for a GPU. Includes both a CUDA renderer and an OpenMP CPU reference
-implementation that produce matching output.
+A compact C++ package for rendering Schwarzschild spacetime with null-geodesic integration. The physics in this repository is kept from the original teaching/HPC ray tracer, while the project layout, build flow, and API surface are organized to behave like a reusable GitHub package rather than a single-file demo.
 
-## Features
+This is not a production astrophysics pipeline or a GRMHD codebase; it is a small general-relativity visualization package for teaching, exploration, and metric prototyping.
 
-- Schwarzschild (non-rotating) black hole geodesics integrated with
-  fixed-step RK4 in spherical coordinates, conserving each photon's energy
-  and angular momentum.
-- Volumetric accretion disk with relativistic Doppler beaming and
-  gravitational redshift, procedural fBm turbulence, and Henyey-Greenstein
-  scattering.
-- Optional foreground spheres (e.g. a companion star) to demonstrate
-  gravitational lensing near the photon ring.
-- CUDA kernel (one thread per pixel) with scene data in `__constant__`
-  memory, structure-of-arrays output for coalesced writes, and warp-level
-  termination masking via `__ballot_sync` to reduce divergence.
-- OpenMP CPU renderer sharing the same geodesic/shading code, used to
-  validate the GPU output pixel-for-pixel.
-- Self-contained PNG writer — no external image or graphics libraries.
-- Simple CLI for resolution, integration parameters, camera placement, and
-  a scripted orbit/animation mode for rendering video frames.
-
-## Physics background
-
-Photon trajectories are computed as null geodesics of the Schwarzschild
-metric,
-
-```
-ds^2 = -(1 - r_s/r) c^2 dt^2 + dr^2/(1 - r_s/r) + r^2 (dtheta^2 + sin^2(theta) dphi^2)
-```
-
-where `r_s = 2GM/c^2` is the Schwarzschild radius. Each ray is initialized
-in Cartesian space from the camera, projected onto a local spherical basis,
-and advanced in the affine parameter with RK4 while conserving the
-geodesic's energy `E` and angular momentum `L`. See
-[`geodesic.h`](geodesic.h) for the integrator and
-[`renderer.h`](renderer.h) / [`renderer.cu`](renderer.cu) for how hits
-against the event horizon, accretion disk, and scene objects are resolved
-along the path.
-
-## Building
-
-Requires a C++11 compiler; the GPU build additionally requires the CUDA
-toolkit (`nvcc`).
+## Quick start
 
 ```bash
-make cpu          # OpenMP CPU build -> raytracer_cpu, no CUDA required
-make gpu          # CUDA build       -> raytracer_gpu
-make gpu GPU_ARCH=sm_80   # target a specific compute capability (see Makefile)
+git clone <repo-url>
+cd black-hole-raytracer
+cmake -S . -B build
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+./build/Release/relray_render_example.exe
 ```
 
-## Running
+## Example usage
 
-```bash
-./raytracer_gpu                       # renders output.png with config.h defaults
-./raytracer_gpu -W 1920 -H 1080 -o render.png
-./raytracer_cpu -W 400 -H 300         # fast low-res CPU sanity check
+```cpp
+#include "relray/relray.h"
+
+int main() {
+    relray::Camera cam(1.2693e12, 0.0, 83.0 * M_PI / 180.0, 12.0, 4.0 / 3.0);
+    relray::Scene scene;
+    relray::RenderConfig config{160, 120, 0.85};
+    relray::Image img = relray::renderPreview(cam, scene, config);
+    (void)img;
+}
 ```
 
-Key flags (see `-h` for the full list):
+## Conventions
 
-| Flag | Meaning | Default |
-|------|---------|---------|
-| `-W`, `-H` | image resolution | 400 x 300 |
-| `-s` | max RK4 integration steps per ray | 100000 |
-| `-d` | affine step size (dLambda) | 4e7 |
-| `-r`, `-a`, `-e`, `-f` | camera radius / azimuth / elevation / FOV | see `config.h` |
-| `-n`, `-N` | render frame `n` of `N` in the built-in orbit animation | off |
-| `-o` | output PNG path | `output.png` |
-
-Edit [`config.h`](config.h) to change the defaults, or
-[`scene.h`](scene.h) to change the black hole mass, disk geometry, or
-foreground objects.
-
-### Animation mode
-
-Passing `-n <frame> -N <total>` drives the camera through a scripted orbit
-(an equatorial pass followed by a rise over the pole) and rotates the
-accretion disk accordingly, naming output frames `frame_0000.png`,
-`frame_0001.png`, etc. Stitch frames into a video with `ffmpeg`:
-
-```bash
-ffmpeg -framerate 60 -i frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -crf 18 out.mp4
-```
-
-## Validating the GPU output
-
-Both renderers share the same physics and shading code, so a CPU and GPU
-render of the same scene/camera should be visually identical (the GPU path
-runs in single precision, so expect small numerical differences). This is
-useful both as a correctness check and as a way to measure GPU speedup —
-the GPU build is typically tens to a few hundred times faster than the CPU
-build at the same resolution, depending on hardware and scene complexity.
+- Metric signature: `(-,+,+,+)`
+- Units: geometrized units with `G = c = 1`; `M` sets the length scale
+- Christoffel indexing follows the standard coordinate basis for the metric `diag(-f, 1/f, r^2, r^2 sin^2 theta)`
+- The affine parameter is integrated along the ray path in the direction away from the observer
 
 ## Project layout
 
-```
-config.h        Tunable defaults: resolution, integration params, camera, output path
-main.cpp        CLI parsing, scene/camera setup, dispatch to CPU or GPU renderer
-vec3.h          3D vector math (host + device)
-camera.h        Spherical-orbit camera, ray generation
-scene.h         BlackHole, AccretionDisk, SphereObject definitions
-geodesic.h      Schwarzschild RK4 null-geodesic integrator (templated, host + device)
-disk_noise.h    fBm value noise + Henyey-Greenstein phase function
-renderer.h      CPU (OpenMP) renderer + shared ray/disk/sphere shading logic
-renderer_gpu.h  GPU renderer declaration
-renderer.cu     CUDA kernel + host wrapper
-image.h         HDR float image buffer, Reinhard tone mapping
-png_write.h     Minimal dependency-free PNG encoder
-Makefile        make cpu / make gpu
+```text
+include/relray/     Public headers and package API
+examples/           Demonstration executables
+tests/              Validation checks
+CMakeLists.txt      Build, install, and export configuration
+README.md           Project docs
+LICENSE             Repository license
 ```
 
-## License
+## Validation
 
-MIT — see [LICENSE](LICENSE).
+The package includes a metric seam in [include/relray/metric.h](include/relray/metric.h) and a validation check for canonical Schwarzschild behavior, including the horizon and the photon-sphere scale:
+
+- horizon at `r = 2M`
+- photon sphere at `r = 3M`
+- consistency with the expected metric diagonal and sign conventions
+
+Run the validation target with:
+
+```bash
+ctest --test-dir build -C Release --output-on-failure
+```
+
+## Limitations
+
+- Schwarzschild only; no Kerr or additional metrics yet
+- Offline rendering only; not a real-time viewer
+- The coordinate singularity at `r = 2M` is still a documented limitation in Schwarzschild coordinates
+- This is a learning and prototyping package, not a production physics engine
+
+## Extending the metric
+
+Adding a new metric means implementing the interface in [include/relray/metric.h](include/relray/metric.h) and reusing the same geodesic conventions. The project is intentionally small enough for a second metric to be a straightforward additive change rather than a rewrite.

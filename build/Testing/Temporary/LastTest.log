@@ -1,0 +1,19 @@
+Start testing: Sep 11 11:23 US Mountain Standard Time
+----------------------------------------------------------
+1/1 Testing: relray_validation
+1/1 Test: relray_validation
+Command: "C:/Users/adamg/OneDrive/Desktop/U of A/569 - HPC/black-hole-raytracer/build/Release/relray_tests.exe"
+Directory: C:/Users/adamg/OneDrive/Desktop/U of A/569 - HPC/black-hole-raytracer/build
+"relray_validation" start time: Sep 11 11:23 US Mountain Standard Time
+Output:
+----------------------------------------------------------
+validation ok
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"relray_validation" end time: Sep 11 11:23 US Mountain Standard Time
+"relray_validation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Sep 11 11:23 US Mountain Standard Time

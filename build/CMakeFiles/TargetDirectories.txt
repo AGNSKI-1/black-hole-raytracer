@@ -1,0 +1,6 @@
+C:/Users/adamg/OneDrive/Desktop/U of A/569 - HPC/black-hole-raytracer/build/CMakeFiles/relray_render_example.dir
+C:/Users/adamg/OneDrive/Desktop/U of A/569 - HPC/black-hole-raytracer/build/CMakeFiles/relray_tests.dir
+C:/Users/adamg/OneDrive/Desktop/U of A/569 - HPC/black-hole-raytracer/build/CMakeFiles/RUN_TESTS.dir
+C:/Users/adamg/OneDrive/Desktop/U of A/569 - HPC/black-hole-raytracer/build/CMakeFiles/INSTALL.dir
+C:/Users/adamg/OneDrive/Desktop/U of A/569 - HPC/black-hole-raytracer/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/adamg/OneDrive/Desktop/U of A/569 - HPC/black-hole-raytracer/build/CMakeFiles/ZERO_CHECK.dir
